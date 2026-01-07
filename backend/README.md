@@ -2,10 +2,11 @@
 
 This repository contains the backend implementation of the application, built using **Node.js, Express, MongoDB (Mongoose)**.
 
-The backend follows a clean layered architecture:  
-**Routes → Controllers → Services → Models**  
+The backend follows a clean layered architecture:
 
-Request validation is handled using **Joi**, authentication using **JWT**, and passwords are securely hashed using **bcrypt**.
+**Routes → Controllers → Services → Models**
+
+Request validation is handled using **Joi**, authentication is implemented using **JWT (Access & Refresh Tokens)**, and passwords are securely hashed using **bcrypt**.
 
 ---
 
@@ -20,6 +21,24 @@ Example:
 http://localhost:3000
 ```
 
+> In production, the backend is hosted separately (e.g. Render) and consumed by a frontend hosted on a different domain (e.g. Vercel).
+
+---
+
+## Authentication Overview
+
+- Authentication is **cookie-based**
+- Tokens are stored in **httpOnly cookies**
+- Tokens are **not exposed to JavaScript**
+- Cross-site authentication is supported using `SameSite=None`
+
+### Cookies Used
+
+| Cookie Name | Purpose |
+|------------|--------|
+| `user_accessToken` | Short-lived access token |
+| `user_refreshToken` | Long-lived refresh token |
+
 ---
 
 ## API Endpoints
@@ -28,7 +47,7 @@ http://localhost:3000
 
 ## Register User
 
-Creates a new user account and returns a JWT token.
+Creates a new user account and sets authentication cookies.
 
 ### Endpoint
 ```
@@ -46,7 +65,7 @@ POST /users/register
     "lastname": "Goel"
   },
   "email": "test@example.com",
-  "password": "test@123"
+  "password": "test@1234"
 }
 ```
 
@@ -79,18 +98,17 @@ Invalid requests return **400 Bad Request**.
       "lastname": "Goel"
     },
     "email": "test@example.com"
-  },
-  "token": "JWT_TOKEN"
+  }
 }
 ```
 
-> Passwords are never returned in responses.
+> Access and refresh tokens are sent via **httpOnly cookies**, not in the response body.
 
 ---
 
 ## Login User
 
-Authenticates an existing user and returns a JWT token along with user details.
+Authenticates an existing user and sets authentication cookies.
 
 ### Endpoint
 ```
@@ -104,7 +122,7 @@ POST /users/login
 ```json
 {
   "email": "test@example.com",
-  "password": "test@123"
+  "password": "test@1234"
 }
 ```
 
@@ -113,9 +131,7 @@ POST /users/login
 ### Validation Rules
 
 - `email` → required, valid email format  
-- `password` → required  
-
-Invalid credentials return **401 Unauthorized**.
+- `password` → required, minimum 8 characters  
 
 ---
 
@@ -129,7 +145,6 @@ Invalid credentials return **401 Unauthorized**.
 ```json
 {
   "authStatus": "authenticated",
-  "token": "JWT_TOKEN",
   "user": {
     "_id": "USER_ID",
     "fullname": {
@@ -157,22 +172,95 @@ Invalid credentials return **401 Unauthorized**.
 }
 ```
 
-> The same error message is returned for invalid email or password to prevent user enumeration attacks.
+> The same error message is returned for invalid email or password to prevent user-enumeration attacks.
+
+---
+
+## Logout User (Current Device)
+
+Logs the user out from the current session by deleting the refresh token and clearing cookies.
+
+### Endpoint
+```
+POST /users/logout
+```
+
+### Authentication
+- Requires valid `user_accessToken`
+
+---
+
+### Success Response
+
+```
+200 OK
+```
+
+```json
+{
+  "message": "Successfully logout."
+}
+```
+
+---
+
+## Logout From All Devices
+
+Invalidates **all refresh tokens** for the user and logs them out from every device.
+
+### Endpoint
+```
+POST /users/logoutAll
+```
+
+### Authentication
+- Requires valid `user_accessToken`
+
+---
+
+### Success Response
+
+```
+200 OK
+```
+
+```json
+{
+  "message": "Successfully logout from all devices."
+}
+```
 
 ---
 
 ## Password Security
 
 - Passwords are hashed using **bcrypt**
-- Password comparison is done using secure bcrypt comparison
+- Secure bcrypt comparison is used during login
 - Plain-text passwords are never stored or returned
+- Password field is excluded by default from queries
 
 ---
 
-## Authentication
+## Token Management
 
-- JWT-based authentication
-- Token is generated after successful login or registration
+- **Access Token**
+  - Short-lived
+  - Used for request authentication
+- **Refresh Token**
+  - Stored in database with:
+    - user agent
+    - IP address
+    - expiry timestamp
+  - Used to maintain sessions securely
+- Refresh tokens are deleted on logout
+
+---
+
+## Validation
+
+- All incoming requests are validated using **Joi**
+- Validation occurs before controller logic
+- Invalid requests fail fast with proper error responses
 
 ---
 
@@ -186,6 +274,7 @@ backend/
 ├── routes/
 ├── validators/
 ├── middleware/
+├── utils/
 ├── app.js
 ├── server.js
 └── README.md
@@ -195,7 +284,8 @@ backend/
 
 ## Notes
 
-- Register and Login routes are implemented
-- Additional routes (profile, protected APIs) will be added later
-- Project follows industry best practices with clean separation of concerns
-- Designed to be scalable, testable, and interview-ready
+- Cookie-based authentication (JWT)
+- Cross-site compatible (Vercel + Render)
+- Refresh tokens stored securely in DB
+- Clean separation of concerns
+- Scalable, secure, and interview-ready architecture
