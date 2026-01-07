@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const validate = require("../middleware/validator.middleware");
-const authMiddleware = require("../middleware/auth.middleware");
+const userAuthMiddleware = require("../middleware/userAuth.middleware");
 const userValidator = require("../validators/user.validator");
 const userController = require("../controllers/user.controller");
 
@@ -18,7 +18,7 @@ router.post(
 );
 
 // router.post("/refresh", authController.refreshToken);
-router.post("/logout", authMiddleware, userController.logoutUser);
-router.post("/logoutAll", authMiddleware, userController.logoutAll);
+router.post("/logout", userAuthMiddleware, userController.logoutUser);
+router.post("/logoutAll", userAuthMiddleware, userController.logoutAll);
 
 module.exports = router;

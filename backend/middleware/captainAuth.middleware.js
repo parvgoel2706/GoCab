@@ -1,5 +1,5 @@
 const ExpressError = require("../utils/ExpressError");
-const captainModel = require("../models/captian.model");
+const captainModel = require("../models/captain.model");
 const jwt = require("jsonwebtoken");
 
 const captainAuthMiddleware = async (req, res, next) => {
