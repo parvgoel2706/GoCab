@@ -27,9 +27,25 @@ const userSchema = new mongoose.Schema({
   socketId: String,
 });
 
-userSchema.methods.generateAuthToken = function() {
-  const token = jwt.sign({ _id: this._id }, process.env.JWT_SECRET);
-  return token;
+userSchema.methods.generateAccessToken = function () {
+  const accessToken = jwt.sign(
+    { _id: this._id },
+    process.env.JWT_ACCESS_SECRET,
+    {
+      expiresIn: "15m",
+    }
+  );
+  return accessToken;
+};
+userSchema.methods.generateRefreshToken = function () {
+  const refreshToken = jwt.sign(
+    { _id: this._id },
+    process.env.JWT_REFRESH_SECRET,
+    {
+      expiresIn: "7d",
+    }
+  );
+  return refreshToken;
 };
 
 userSchema.methods.comparePassword = async function (password) {
